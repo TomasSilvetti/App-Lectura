@@ -33,6 +33,26 @@ En el dispositivo, nada más:
 Los archivos nunca se suben a ningún servidor. La contracara: si se borran los
 datos del navegador o se abre desde otro dispositivo, los libros no están.
 
+## Instalable y offline
+
+Se puede instalar como app desde la propia interfaz: hay un botón en Ajustes y
+un banner descartable en la biblioteca.
+
+- **Android / Chrome / Edge**: se captura `beforeinstallprompt` y el botón abre
+  el diálogo nativo de instalación.
+- **iPhone y iPad**: Safari no expone ese evento, así que se muestran los pasos
+  (Compartir → Agregar a inicio).
+- **Ya instalada**: se detecta por `display-mode: standalone` y se avisa en vez
+  de ofrecerla de nuevo.
+
+El service worker (`public/sw.js`) hace que la app abra sin conexión, que es lo
+que corresponde: los libros ya están en el dispositivo y lo único que necesita
+internet es buscar una palabra nueva. Los assets con hash van cache-first, las
+páginas red-primero con el cache como respaldo, y las APIs externas nunca se
+cachean ahí (para eso está el cache de IndexedDB).
+
+Los íconos PNG se generan desde los SVG con `npm run icons`.
+
 ## Pantallas
 
 | Ruta | Qué es |
@@ -64,8 +84,11 @@ modal traiga audio, significado, traducción y ejemplo.
 
 ```bash
 npm run build && npx next start -p 3010   # en una terminal
-npm run e2e                               # en otra
+npm run e2e                               # en otra: flujo completo (25 checks)
+npm run e2e:pwa                           # instalación y offline (22 checks)
 ```
+
+Ambas aceptan `BASE_URL` para correr contra producción.
 
 Las capturas quedan en `e2e/screenshots/`.
 

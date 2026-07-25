@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Copia literal del worker de pdf.js: no es código nuestro.
     "public/pdf.worker.min.mjs",
+    // Corre en el scope de service worker, no en el del navegador.
+    "public/sw.js",
   ]),
 ]);
 

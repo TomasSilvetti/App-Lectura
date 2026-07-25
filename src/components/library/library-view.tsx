@@ -5,6 +5,7 @@ import { BookMarked } from "lucide-react";
 import { toast } from "sonner";
 import { UploadDropzone } from "@/components/library/upload-dropzone";
 import { BookCard } from "@/components/library/book-card";
+import { InstallBanner } from "@/components/pwa/install-banner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -104,6 +105,7 @@ export function LibraryView() {
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-5 sm:py-8">
+      <InstallBanner />
       <UploadDropzone
         onFiles={(files) => void handleFiles(files)}
         busy={busy}

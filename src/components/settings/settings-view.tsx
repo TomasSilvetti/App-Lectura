@@ -30,6 +30,7 @@ import {
   updatePrefs,
   usePrefs,
 } from "@/hooks/usePrefs";
+import { InstallApp } from "@/components/pwa/install-app";
 import { playPronunciation } from "@/lib/speech";
 import { useEnglishVoices } from "@/hooks/useEnglishVoices";
 import { useIsMounted } from "@/hooks/useIsMounted";
@@ -121,6 +122,13 @@ export function SettingsView() {
 
   return (
     <div className="mx-auto w-full max-w-2xl flex-1 space-y-4 px-4 py-6 sm:px-5">
+      <Section
+        title="Instalar la app"
+        description="Queda con su propio ícono en la pantalla de inicio y abre sin la barra del navegador."
+      >
+        <InstallApp />
+      </Section>
+
       <Section title="Apariencia">
         <div className="grid grid-cols-3 gap-2">
           {themeOptions.map(({ value, label, icon: Icon }) => {

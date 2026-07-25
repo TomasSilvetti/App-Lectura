@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "e2e": "node e2e/smoke.mjs",
+    "e2e:pwa": "node e2e/pwa-check.mjs",
     "e2e:fixtures": "node e2e/make-fixtures.mjs",
+    "icons": "node scripts/make-icons.mjs",
     "sync-pdf-worker": "node scripts/sync-pdf-worker.mjs",
     "postinstall": "node scripts/sync-pdf-worker.mjs"
   },
@@ -41,6 +43,7 @@
     "eslint-config-next": "16.2.11",
     "pdf-lib": "^1.17.1",
     "playwright": "^1.62.0",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
