@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+/e2e/screenshots
+/e2e/fixtures
+
+# copia generada por el postinstall
+/public/pdf.worker.min.mjs
 
 # next.js
 /.next/

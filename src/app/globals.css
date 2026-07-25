@@ -1,26 +1,207 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-display);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Paleta "papel cálido": fondos con tinte sepia y acento terracota. */
+:root {
+  --background: oklch(0.982 0.006 85);
+  --foreground: oklch(0.24 0.014 60);
+  --card: oklch(0.996 0.004 90);
+  --card-foreground: oklch(0.24 0.014 60);
+  --popover: oklch(0.996 0.004 90);
+  --popover-foreground: oklch(0.24 0.014 60);
+  --primary: oklch(0.58 0.13 48);
+  --primary-foreground: oklch(0.99 0.005 90);
+  --secondary: oklch(0.952 0.012 80);
+  --secondary-foreground: oklch(0.3 0.02 60);
+  --muted: oklch(0.955 0.01 82);
+  --muted-foreground: oklch(0.52 0.02 65);
+  --accent: oklch(0.93 0.028 72);
+  --accent-foreground: oklch(0.3 0.03 55);
+  --destructive: oklch(0.577 0.21 27.325);
+  --border: oklch(0.9 0.012 78);
+  --input: oklch(0.9 0.012 78);
+  --ring: oklch(0.58 0.13 48);
+  --radius: 0.75rem;
+
+  /* Tokens propios del lector */
+  --reader-paper: oklch(0.995 0.005 88);
+  --word-hover: oklch(0.58 0.13 48 / 0.16);
+  --word-active: oklch(0.58 0.13 48 / 0.34);
+  --page-invert: 0;
+}
+
+.dark {
+  --background: oklch(0.195 0.012 65);
+  --foreground: oklch(0.93 0.012 85);
+  --card: oklch(0.245 0.014 65);
+  --card-foreground: oklch(0.93 0.012 85);
+  --popover: oklch(0.245 0.014 65);
+  --popover-foreground: oklch(0.93 0.012 85);
+  --primary: oklch(0.74 0.13 58);
+  --primary-foreground: oklch(0.2 0.025 55);
+  --secondary: oklch(0.295 0.014 65);
+  --secondary-foreground: oklch(0.93 0.012 85);
+  --muted: oklch(0.295 0.014 65);
+  --muted-foreground: oklch(0.72 0.018 75);
+  --accent: oklch(0.345 0.026 60);
+  --accent-foreground: oklch(0.94 0.014 85);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.74 0.13 58);
+
+  --reader-paper: oklch(0.225 0.014 65);
+  --word-hover: oklch(0.74 0.13 58 / 0.22);
+  --word-active: oklch(0.74 0.13 58 / 0.42);
+  --page-invert: 1;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---------------------------------------------------------------------------
+   Capa de texto de PDF.js
+   Estilos mínimos portados de pdf_viewer.css. Las posiciones vienen en % y el
+   tamaño de fuente se deriva de --total-scale-factor, que fija el lector.
+--------------------------------------------------------------------------- */
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 2;
+
+  --min-font-size: 1;
+  --total-scale-factor: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: pointer;
+  transform-origin: 0% 0%;
+}
+
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x))
+    scale(var(--min-font-size-inv));
+}
+
+.textLayer .markedContent {
+  display: contents;
+}
+
+/* Neutraliza las reglas de arriba para las palabras que inyectamos dentro de
+   cada text div: tienen que fluir en línea, no posicionarse ni reescalarse. */
+.textLayer span.pw {
+  position: static !important;
+  display: inline !important;
+  transform: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  border-radius: 0.2em;
+  transition: background-color 120ms ease;
+}
+
+@media (hover: hover) {
+  .textLayer span.pw:hover {
+    background-color: var(--word-hover);
+  }
+}
+
+.textLayer span.pw[data-active="true"] {
+  background-color: var(--word-active);
+}
+
+/* ---------------------------------------------------------------------------
+   Superficie de página
+--------------------------------------------------------------------------- */
+.page-surface {
+  position: relative;
+  background: var(--reader-paper);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.06),
+    0 8px 24px -8px oklch(0 0 0 / 0.18);
+}
+
+.page-surface canvas {
+  display: block;
+  filter: invert(var(--page-invert)) hue-rotate(calc(var(--page-invert) * 180deg));
+}
+
+.epub-surface {
+  position: relative;
+  background: var(--reader-paper);
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.06),
+    0 8px 24px -8px oklch(0 0 0 / 0.18);
+}
+
+/* Oculta la barra de scroll manteniendo el scroll utilizable */
+.scroll-clean {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
