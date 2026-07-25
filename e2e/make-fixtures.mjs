@@ -49,9 +49,19 @@ async function makePdf() {
 function chapterXhtml(title, lines) {
   return `<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"><head><title>${title}</title></head>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>${title}</title>
+<link rel="stylesheet" type="text/css" href="style.css"/></head>
 <body><h1>${title}</h1>${lines.map((l) => `<p>${l}</p>`).join("")}</body></html>`;
 }
+
+/* Los EPUB reales casi siempre fijan sus propios colores. Si el fixture no lo
+   hace, el modo oscuro parece funcionar en la prueba y falla con libros de
+   verdad. */
+const BOOK_CSS = `
+html, body { background: #ffffff; color: #000000; }
+p { color: #111111; font-family: Georgia, serif; }
+h1 { color: #222222; }
+`;
 
 async function makeEpub() {
   const zip = new JSZip();
@@ -77,6 +87,7 @@ async function makeEpub() {
   </metadata>
   <manifest>
     <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="css" href="style.css" media-type="text/css"/>
     <item id="c1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
     <item id="c2" href="chapter2.xhtml" media-type="application/xhtml+xml"/>
   </manifest>
@@ -95,6 +106,7 @@ async function makeEpub() {
 </ol></nav></body></html>`,
   );
 
+  zip.file("OEBPS/style.css", BOOK_CSS);
   zip.file("OEBPS/chapter1.xhtml", chapterXhtml("A Quiet Morning", PAGES[0]));
   zip.file("OEBPS/chapter2.xhtml", chapterXhtml("The Lighthouse", PAGES[1]));
 

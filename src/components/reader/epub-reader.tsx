@@ -38,6 +38,33 @@ function safePercent(epubBook: Book, cfi: string): number | null {
   }
 }
 
+/** Todo lo que puede llevar texto dentro de un EPUB y hay que forzar en oscuro. */
+const TEXT_SELECTORS = [
+  "body",
+  "p",
+  "div",
+  "span",
+  "li",
+  "dd",
+  "dt",
+  "td",
+  "th",
+  "blockquote",
+  "figcaption",
+  "cite",
+  "small",
+  "strong",
+  "em",
+  "b",
+  "i",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+].join(", ");
+
 /** Lee los colores del tema actual para replicarlos dentro del iframe del EPUB. */
 function readThemeColors() {
   const styles = getComputedStyle(document.documentElement);
@@ -204,11 +231,22 @@ export function EpubReader({ book, file, onProgress }: EpubReaderProps) {
     const rendition = renditionRef.current;
     if (!rendition || !ready) return;
 
+    const isDark = resolvedTheme === "dark";
     const colors = readThemeColors();
+
     rendition.themes.default({
+      /*
+       * Tiene que ser el color concreto, no "transparent": un iframe cuyo
+       * documento no declara fondo se pinta con el blanco por defecto del
+       * navegador, y en modo oscuro quedaba una hoja blanca aunque el texto ya
+       * fuera claro.
+       */
+      "html, body": {
+        "background-color": `${colors.paper} !important`,
+        "color-scheme": isDark ? "dark" : "light",
+      },
       body: {
         color: colors.foreground,
-        "background-color": "transparent",
         "line-height": "1.65",
         padding: "0 8px",
       },
@@ -217,7 +255,26 @@ export function EpubReader({ book, file, onProgress }: EpubReaderProps) {
       ".pw": { "border-radius": "0.2em", cursor: "pointer" },
       ".pw:hover": { "background-color": colors.hover },
       '.pw[data-active="true"]': { "background-color": colors.active },
+
+      /*
+       * Casi todos los EPUB traen su propia hoja de estilos con algo como
+       * `p { color: #111 }`, que le gana a la regla de `body` y deja el texto
+       * negro sobre fondo negro. En oscuro forzamos el color; en claro
+       * respetamos el diseño original del libro.
+       */
+      ...(isDark
+        ? {
+            [TEXT_SELECTORS]: { color: `${colors.foreground} !important` },
+            "a, a:visited, a *": { color: `${colors.primary} !important` },
+            "[style*='background']": {
+              "background-color": "transparent !important",
+            },
+          }
+        : {}),
     });
+    // Los estilos registrados no se re-aplican solos a lo que ya está en
+    // pantalla; hay que forzar la actualización al cambiar de tema.
+    rendition.themes.update("default");
     rendition.themes.fontSize(`${Math.round(zoom * 100)}%`);
   }, [ready, resolvedTheme, zoom]);
 

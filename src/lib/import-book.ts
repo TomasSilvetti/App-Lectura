@@ -102,7 +102,9 @@ async function importPdf(file: File): Promise<ImportResult> {
 async function importEpub(file: File): Promise<ImportResult> {
   const { default: ePub } = await import("epubjs");
   const buffer = await file.arrayBuffer();
-  const book = ePub(buffer);
+  // Acá solo se leen el título y la portada: no hace falta convertir cada
+  // recurso del libro a blob URL como sí necesita el lector para renderizar.
+  const book = ePub(buffer, { replacements: "none" });
   await book.ready;
 
   const metaTitle = book.packaging?.metadata?.title?.trim();
@@ -119,7 +121,13 @@ async function importEpub(file: File): Promise<ImportResult> {
     // sin portada
   }
 
-  book.destroy();
+  /*
+   * A propósito no se llama a book.destroy(): epub.js sigue resolviendo
+   * recursos en segundo plano y destruirlo le deja la referencia interna en
+   * null, lo que tira un TypeError en consola. Sin replacements no quedan blob
+   * URLs colgando, así que alcanza con soltar la referencia y dejar que el
+   * recolector haga el resto.
+   */
 
   return {
     meta: {

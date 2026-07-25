@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WordLookupProvider } from "@/components/word/word-lookup-provider";
 import { ServiceWorker } from "@/components/pwa/service-worker";
+import { ThemeColor } from "@/components/pwa/theme-color";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -25,11 +26,12 @@ export const metadata: Metadata = {
   },
 };
 
+/*
+ * Sin `themeColor` a propósito: las variantes por `prefers-color-scheme` siguen
+ * al sistema operativo, no al tema elegido dentro de la app. Del color de la
+ * barra se encarga <ThemeColor/>, que lee el tema real en el cliente.
+ */
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf7f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#211f1d" },
-  ],
   viewportFit: "cover",
 };
 
@@ -53,6 +55,7 @@ export default function RootLayout({
         >
           <WordLookupProvider>{children}</WordLookupProvider>
           <Toaster position="top-center" richColors />
+          <ThemeColor />
           <ServiceWorker />
         </ThemeProvider>
       </body>

@@ -22,6 +22,26 @@ IA.**
 Cada búsqueda queda cacheada en IndexedDB, así que tocar la misma palabra dos
 veces no vuelve a pegarle a ninguna API.
 
+### Explicaciones en inglés o en español
+
+El modal tiene un toggle EN/ES sobre las acepciones. Se traducen **solo cuando
+se piden** y el resultado queda cacheado junto a la palabra, porque la cuota
+gratuita de traducción es por caracteres y las definiciones son largas. La
+elección se recuerda: si queda en ES, las siguientes palabras ya se abren
+traducidas.
+
+### Modo oscuro
+
+- **PDF**: las páginas son imágenes blancas, así que se invierten con un filtro.
+- **EPUB**: casi todos los libros traen su propia hoja de estilos con
+  `p { color: #111 }`, que le gana a cualquier regla de `body`. En oscuro se
+  fuerza el color del texto; en claro se respeta el diseño del libro. El fondo
+  del documento se pinta con un color concreto y no con `transparent`: un iframe
+  sin fondo declarado se pinta blanco por defecto.
+- **Barra del navegador**: el `theme-color` lo maneja `<ThemeColor/>` en el
+  cliente. El de Next depende de `prefers-color-scheme`, o sea del sistema
+  operativo, y quedaba desfasado cuando el tema de la app no coincidía.
+
 ### Dónde se guardan los datos
 
 En el dispositivo, nada más:
@@ -86,7 +106,12 @@ modal traiga audio, significado, traducción y ejemplo.
 npm run build && npx next start -p 3010   # en una terminal
 npm run e2e                               # en otra: flujo completo (25 checks)
 npm run e2e:pwa                           # instalación y offline (22 checks)
+npm run e2e:dark                          # modo oscuro y toggle EN/ES (15 checks)
 ```
+
+`e2e:dark` mide **los píxeles renderizados**, no el CSS: un iframe puede
+reportar fondo transparente y verse blanco igual, y esa diferencia ya dejó pasar
+un bug real.
 
 Ambas aceptan `BASE_URL` para correr contra producción.
 

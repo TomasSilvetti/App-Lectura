@@ -11,6 +11,8 @@ export interface Prefs {
   preferHuman: boolean;
   /** Reproducir la pronunciación apenas se abre el modal */
   autoPlay: boolean;
+  /** Idioma en el que se muestran las definiciones del modal */
+  definitionsLang: "en" | "es";
 }
 
 const STORAGE_KEY = "lectura:prefs";
@@ -20,6 +22,7 @@ const DEFAULTS: Prefs = {
   voiceURI: null,
   preferHuman: true,
   autoPlay: true,
+  definitionsLang: "en",
 };
 
 export const FONT_SCALE_MIN = 0.7;
@@ -43,6 +46,8 @@ function readStorage(): Prefs {
       voiceURI: typeof parsed.voiceURI === "string" ? parsed.voiceURI : null,
       preferHuman: parsed.preferHuman ?? DEFAULTS.preferHuman,
       autoPlay: parsed.autoPlay ?? DEFAULTS.autoPlay,
+      definitionsLang:
+        parsed.definitionsLang === "es" ? "es" : DEFAULTS.definitionsLang,
     };
   } catch {
     return DEFAULTS;

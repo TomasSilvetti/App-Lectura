@@ -8,6 +8,7 @@ import {
   Star,
   Volume2,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Drawer,
   DrawerContent,
@@ -19,10 +20,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { lookupWord, partOfSpeechEs, type WordEntry } from "@/lib/dictionary";
+import {
+  lookupWord,
+  partOfSpeechEs,
+  translateSenses,
+  type WordEntry,
+} from "@/lib/dictionary";
 import { playPronunciation, stopPlayback, type AudioSource } from "@/lib/speech";
 import { getSavedWord, saveWord, deleteSavedWord } from "@/lib/db";
-import { usePrefs } from "@/hooks/usePrefs";
+import { updatePrefs, usePrefs } from "@/hooks/usePrefs";
 import type { WordSource } from "@/components/word/word-lookup-provider";
 
 interface WordSheetProps {
@@ -49,6 +55,7 @@ export function WordSheet({
   const [lastSource, setLastSource] = useState<AudioSource | null>(null);
   const [saved, setSaved] = useState(false);
   const [showExample, setShowExample] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const activeRequest = useRef(0);
 
   const play = useCallback(
@@ -67,6 +74,27 @@ export function WordSheet({
     },
     [prefs.preferHuman, prefs.voiceURI],
   );
+
+  const lang = prefs.definitionsLang;
+
+  /** Pide la traducción de las acepciones si todavía no se hizo. */
+  const ensureSpanish = useCallback(async (target: WordEntry, id: number) => {
+    if (target.sensesEs || !target.senses.length) return;
+    setTranslating(true);
+    try {
+      const updated = await translateSenses(target);
+      if (activeRequest.current !== id) return;
+      setEntry(updated);
+      if (!updated.sensesEs) {
+        toast.error("No se pudieron traducir las explicaciones", {
+          description:
+            "El servicio de traducción no respondió. Las dejamos en inglés.",
+        });
+      }
+    } finally {
+      if (activeRequest.current === id) setTranslating(false);
+    }
+  }, []);
 
   // Tocar otra palabra con el modal abierto reinicia el contenido sin cerrarlo.
   const [renderedRequest, setRenderedRequest] = useState(requestId);
@@ -98,6 +126,8 @@ export function WordSheet({
       if (prefs.autoPlay) {
         void play(result, result.word || word);
       }
+      // Si dejó elegido el español, se traduce sin que tenga que pedirlo.
+      if (prefs.definitionsLang === "es") void ensureSpanish(result, id);
     })();
 
     return () => {
@@ -112,7 +142,14 @@ export function WordSheet({
     if (!open) stopPlayback();
   }, [open]);
 
+  const switchLang = (next: "en" | "es") => {
+    updatePrefs({ definitionsLang: next });
+    if (next === "es" && entry) void ensureSpanish(entry, requestId);
+  };
+
   const spokenWord = entry?.word || word;
+  const shownSenses =
+    lang === "es" && entry?.sensesEs ? entry.sensesEs : (entry?.senses ?? []);
 
   const toggleSaved = async () => {
     if (saved) {
@@ -202,11 +239,21 @@ export function WordSheet({
 
               {entry.senses.length > 0 && (
                 <section className="space-y-4">
-                  <h3 className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    <BookOpenText className="size-3.5" />
-                    Significado
-                  </h3>
-                  {entry.senses.map((sense) => (
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="flex items-center gap-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      <BookOpenText className="size-3.5" />
+                      Significado
+                      {translating && (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      )}
+                    </h3>
+                    <LanguageToggle
+                      value={lang}
+                      onChange={switchLang}
+                      busy={translating}
+                    />
+                  </div>
+                  {shownSenses.map((sense) => (
                     <div key={sense.partOfSpeech} className="space-y-2">
                       <Badge variant="secondary" className="capitalize">
                         {partOfSpeechEs(sense.partOfSpeech)}
@@ -301,6 +348,44 @@ export function WordSheet({
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+function LanguageToggle({
+  value,
+  onChange,
+  busy,
+}: {
+  value: "en" | "es";
+  onChange: (next: "en" | "es") => void;
+  busy: boolean;
+}) {
+  const options = [
+    { id: "en" as const, label: "EN", name: "Ver las explicaciones en inglés" },
+    { id: "es" as const, label: "ES", name: "Ver las explicaciones en español" },
+  ];
+
+  return (
+    <div className="flex shrink-0 rounded-full border p-0.5">
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          aria-label={option.name}
+          aria-pressed={value === option.id}
+          disabled={busy}
+          onClick={() => onChange(option.id)}
+          className={cn(
+            "rounded-full px-3 py-1 text-xs font-medium transition-colors disabled:opacity-60",
+            value === option.id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   );
 }
 

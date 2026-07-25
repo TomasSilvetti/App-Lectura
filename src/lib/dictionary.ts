@@ -18,6 +18,11 @@ export interface WordEntry {
   phonetic: string | null;
   audioUrl: string | null;
   senses: WordSense[];
+  /**
+   * Las mismas acepciones traducidas al español. Se calculan solo cuando se
+   * piden, porque traducir consume la cuota diaria del servicio.
+   */
+  sensesEs: WordSense[] | null;
   synonyms: string[];
   translation: string | null;
   example: { en: string; es: string | null } | null;
@@ -271,6 +276,7 @@ function notFoundEntry(queried: string): WordEntry {
     phonetic: null,
     audioUrl: null,
     senses: [],
+    sensesEs: null,
     synonyms: [],
     translation: null,
     example: null,
@@ -355,6 +361,7 @@ async function performLookup(queried: string): Promise<WordEntry> {
     phonetic: pickPhonetic(entries),
     audioUrl: pickAudio(entries),
     senses,
+    sensesEs: null,
     synonyms,
     translation,
     example,
@@ -363,6 +370,43 @@ async function performLookup(queried: string): Promise<WordEntry> {
 
   await setCachedLookup(queried, entry);
   return entry;
+}
+
+/**
+ * Traduce las acepciones al español y guarda el resultado en el cache, así se
+ * paga una sola vez por palabra.
+ *
+ * Se traduce definición por definición a propósito: unir varias en un mismo
+ * pedido no ahorra cuota (el límite es por caracteres) y el traductor suele
+ * comerse los separadores.
+ */
+export async function translateSenses(entry: WordEntry): Promise<WordEntry> {
+  if (entry.sensesEs || !entry.senses.length) return entry;
+
+  const sensesEs: WordSense[] = [];
+  let translatedCount = 0;
+
+  for (const sense of entry.senses) {
+    const definitions: WordDefinition[] = [];
+    for (const def of sense.definitions) {
+      const translated = await translate(def.definition);
+      if (translated) translatedCount += 1;
+      definitions.push({
+        // Si una definición falla se muestra en inglés en vez de vaciarla.
+        definition: translated ?? def.definition,
+        example: def.example,
+      });
+    }
+    sensesEs.push({ partOfSpeech: sense.partOfSpeech, definitions });
+  }
+
+  // Si no se pudo traducir nada, no vale la pena cachear un resultado inútil:
+  // probablemente se agotó la cuota diaria y mañana sí va a funcionar.
+  if (translatedCount === 0) return entry;
+
+  const updated: WordEntry = { ...entry, sensesEs };
+  await setCachedLookup(entry.queried, updated);
+  return updated;
 }
 
 /** Adelanta la búsqueda para que al hacer click el audio salga instantáneo. */
