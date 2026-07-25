@@ -35,8 +35,18 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Paleta "papel cálido": fondos con tinte sepia y acento terracota. */
-:root {
+/* ---------------------------------------------------------------------------
+   Paleta "papel cálido": fondos con tinte sepia y acento terracota.
+
+   Los tokens se declaran también sobre `.light` / `.dark`, no solo sobre
+   `:root`. next-themes pone una de esas dos clases en el <html>, y tenerlas
+   como selector propio permite leer los valores de cualquiera de los dos temas
+   desde un elemento sonda (ver src/lib/theme-tokens.ts) sin que herede los del
+   tema que está activo en ese momento.
+--------------------------------------------------------------------------- */
+:root,
+.light {
+  color-scheme: light;
   --background: oklch(0.982 0.006 85);
   --foreground: oklch(0.24 0.014 60);
   --card: oklch(0.996 0.004 90);
@@ -65,6 +75,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.195 0.012 65);
   --foreground: oklch(0.93 0.012 85);
   --card: oklch(0.245 0.014 65);

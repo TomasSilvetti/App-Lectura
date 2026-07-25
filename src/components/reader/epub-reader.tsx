@@ -13,6 +13,7 @@ import { prefetchWord } from "@/lib/dictionary";
 import { useWordLookup } from "@/components/word/word-lookup-provider";
 import { ReaderChrome } from "@/components/reader/reader-chrome";
 import { updatePrefs, usePrefs } from "@/hooks/usePrefs";
+import { readThemeTokens, type ThemeTokens } from "@/lib/theme-tokens";
 import type { BookMeta } from "@/lib/db";
 
 interface EpubReaderProps {
@@ -38,45 +39,65 @@ function safePercent(epubBook: Book, cfi: string): number | null {
   }
 }
 
-/** Todo lo que puede llevar texto dentro de un EPUB y hay que forzar en oscuro. */
-const TEXT_SELECTORS = [
-  "body",
-  "p",
-  "div",
-  "span",
-  "li",
-  "dd",
-  "dt",
-  "td",
-  "th",
-  "blockquote",
-  "figcaption",
-  "cite",
-  "small",
-  "strong",
-  "em",
-  "b",
-  "i",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-].join(", ");
+/** Clave del <style> que la app inyecta en el documento del libro. */
+const STYLE_KEY = "app-theme";
 
-/** Lee los colores del tema actual para replicarlos dentro del iframe del EPUB. */
-function readThemeColors() {
-  const styles = getComputedStyle(document.documentElement);
-  const value = (name: string) => styles.getPropertyValue(name).trim();
-  return {
-    foreground: value("--foreground"),
-    paper: value("--reader-paper"),
-    primary: value("--primary"),
-    hover: value("--word-hover"),
-    active: value("--word-active"),
-    muted: value("--muted-foreground"),
-  };
+/**
+ * Los tipos de epub.js declaran `getContents(): Contents`, pero en tiempo de
+ * ejecución devuelve el array de los documentos montados (uno por página).
+ */
+function getContents(rendition: Rendition | null): Contents[] {
+  if (!rendition) return [];
+  return rendition.getContents() as unknown as Contents[];
+}
+
+/**
+ * Hoja de estilos que la app impone dentro del iframe del EPUB.
+ *
+ * Criterio: en los dos temas mandan los colores de la app, no los del libro.
+ * Casi todos los EPUB traen su propia hoja con algo como `p { color: #111 }` o
+ * `body { background: #fff }`, pensada para papel blanco. Respetarla en claro y
+ * pisarla solo en oscuro dejaba dos juegos de reglas distintos según el tema, y
+ * cualquier desfasaje entre ellos terminaba en texto negro sobre fondo negro.
+ * Emitir siempre las mismas reglas hace que el resultado dependa de un único
+ * valor —el tema— y no del orden en que se fueron aplicando.
+ *
+ * `body, body *` gana por especificidad a las reglas de elemento del libro, y
+ * pierde contra `.pw`, que es lo que queremos: el resaltado de la palabra
+ * tocada sobrevive al barrido.
+ */
+function buildReaderCss(tokens: ThemeTokens, isDark: boolean): string {
+  return `
+body, body * {
+  color: ${tokens.foreground} !important;
+  background-color: transparent !important;
+}
+body a, body a:visited, body a * {
+  color: ${tokens.primary} !important;
+}
+html, body {
+  background-color: ${tokens.paper} !important;
+  color-scheme: ${isDark ? "dark" : "light"};
+}
+body {
+  line-height: 1.65;
+  padding: 0 8px;
+}
+hr {
+  border-color: ${tokens.border} !important;
+}
+.pw {
+  border-radius: 0.2em;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.pw:hover {
+  background-color: ${tokens.hover} !important;
+}
+.pw[data-active="true"] {
+  background-color: ${tokens.active} !important;
+}
+`;
 }
 
 export function EpubReader({ book, file, onProgress }: EpubReaderProps) {
@@ -99,6 +120,7 @@ export function EpubReader({ book, file, onProgress }: EpubReaderProps) {
   // quedar atado a un render viejo.
   const openWordRef = useRef(openWord);
   const bookInfoRef = useRef({ id: book.id, title: book.title });
+  const cssRef = useRef("");
 
   useEffect(() => {
     openWordRef.current = openWord;
@@ -107,6 +129,27 @@ export function EpubReader({ book, file, onProgress }: EpubReaderProps) {
   useEffect(() => {
     bookInfoRef.current = { id: book.id, title: book.title };
   }, [book.id, book.title]);
+
+  /* ------------------------------------------------------------------ tema */
+
+  const isDark = resolvedTheme === "dark";
+
+  /*
+   * Va antes del efecto de montaje a propósito: así, cuando el hook de
+   * contenido corra (dentro de la promesa de aquel efecto, o sea después de
+   * este), ya encuentra la hoja armada y el libro nunca aparece con los colores
+   * originales antes de recibir los de la app.
+   */
+  useEffect(() => {
+    const css = buildReaderCss(readThemeTokens(isDark), isDark);
+    cssRef.current = css;
+    // Reemplaza el contenido del mismo <style> en vez de apilar reglas nuevas:
+    // apilarlas dejaba vivas las `!important` del tema anterior, y al volver a
+    // claro el texto seguía pintado para fondo oscuro.
+    getContents(renditionRef.current).forEach((contents) => {
+      void contents.addStylesheetCss(css, STYLE_KEY);
+    });
+  }, [isDark]);
 
   /* ----------------------------------------------------- montaje del libro */
 
@@ -137,6 +180,9 @@ export function EpubReader({ book, file, onProgress }: EpubReaderProps) {
 
         rendition.hooks.content.register((contents: Contents) => {
           const doc = contents.document;
+          // Cada página del EPUB es un iframe nuevo con la hoja original del
+          // libro: hay que volver a imponerle la de la app.
+          void contents.addStylesheetCss(cssRef.current, STYLE_KEY);
           wrapWordsInElement(doc.body);
 
           doc.addEventListener("click", (event) => {
@@ -225,58 +271,12 @@ export function EpubReader({ book, file, onProgress }: EpubReaderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]);
 
-  /* ------------------------------------------------------- tema y tamaño */
+  /* ------------------------------------------------------------- tamaño */
 
   useEffect(() => {
-    const rendition = renditionRef.current;
-    if (!rendition || !ready) return;
-
-    const isDark = resolvedTheme === "dark";
-    const colors = readThemeColors();
-
-    rendition.themes.default({
-      /*
-       * Tiene que ser el color concreto, no "transparent": un iframe cuyo
-       * documento no declara fondo se pinta con el blanco por defecto del
-       * navegador, y en modo oscuro quedaba una hoja blanca aunque el texto ya
-       * fuera claro.
-       */
-      "html, body": {
-        "background-color": `${colors.paper} !important`,
-        "color-scheme": isDark ? "dark" : "light",
-      },
-      body: {
-        color: colors.foreground,
-        "line-height": "1.65",
-        padding: "0 8px",
-      },
-      "a, a:visited": { color: colors.primary },
-      "h1, h2, h3, h4, h5, h6": { color: colors.foreground },
-      ".pw": { "border-radius": "0.2em", cursor: "pointer" },
-      ".pw:hover": { "background-color": colors.hover },
-      '.pw[data-active="true"]': { "background-color": colors.active },
-
-      /*
-       * Casi todos los EPUB traen su propia hoja de estilos con algo como
-       * `p { color: #111 }`, que le gana a la regla de `body` y deja el texto
-       * negro sobre fondo negro. En oscuro forzamos el color; en claro
-       * respetamos el diseño original del libro.
-       */
-      ...(isDark
-        ? {
-            [TEXT_SELECTORS]: { color: `${colors.foreground} !important` },
-            "a, a:visited, a *": { color: `${colors.primary} !important` },
-            "[style*='background']": {
-              "background-color": "transparent !important",
-            },
-          }
-        : {}),
-    });
-    // Los estilos registrados no se re-aplican solos a lo que ya está en
-    // pantalla; hay que forzar la actualización al cambiar de tema.
-    rendition.themes.update("default");
-    rendition.themes.fontSize(`${Math.round(zoom * 100)}%`);
-  }, [ready, resolvedTheme, zoom]);
+    if (!ready) return;
+    renditionRef.current?.themes.fontSize(`${Math.round(zoom * 100)}%`);
+  }, [ready, zoom]);
 
   /* -------------------------------------------------------------- resize */
 

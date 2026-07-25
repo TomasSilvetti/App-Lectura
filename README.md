@@ -107,13 +107,18 @@ npm run build && npx next start -p 3010   # en una terminal
 npm run e2e                               # en otra: flujo completo (25 checks)
 npm run e2e:pwa                           # instalación y offline (22 checks)
 npm run e2e:dark                          # modo oscuro y toggle EN/ES (15 checks)
+npm run e2e:theme                         # claro/oscuro alternando en caliente (43 checks)
 ```
 
-`e2e:dark` mide **los píxeles renderizados**, no el CSS: un iframe puede
-reportar fondo transparente y verse blanco igual, y esa diferencia ya dejó pasar
-un bug real.
+`e2e:dark` y `e2e:theme` miden **los píxeles renderizados**, no el CSS: un
+iframe puede reportar fondo transparente y verse blanco igual, y esa diferencia
+ya dejó pasar un bug real.
 
-Ambas aceptan `BASE_URL` para correr contra producción.
+`e2e:theme` toca el botón del tema con el libro abierto en vez de fijarlo antes
+de cargar. Es la diferencia que importa: los desfasajes de tema aparecían recién
+al alternar, y con el tema fijado de entrada todo pasaba.
+
+Todas aceptan `BASE_URL` para correr contra producción.
 
 Las capturas quedan en `e2e/screenshots/`.
 

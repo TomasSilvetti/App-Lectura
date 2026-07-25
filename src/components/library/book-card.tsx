@@ -71,7 +71,7 @@ export function BookCard({
           )}
 
           {ratio > 0 && (
-            <div className="absolute inset-x-0 bottom-0 h-1 bg-black/20">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-foreground/20">
               <div
                 className="h-full bg-primary"
                 style={{ width: `${ratio * 100}%` }}
