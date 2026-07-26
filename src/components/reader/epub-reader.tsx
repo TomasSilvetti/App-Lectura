@@ -10,6 +10,7 @@ import {
   wrapWordsInElement,
 } from "@/lib/wrap-words";
 import { prefetchWord } from "@/lib/dictionary";
+import { attachSwipeNavigation } from "@/lib/swipe";
 import { useWordLookup } from "@/components/word/word-lookup-provider";
 import { ReaderChrome } from "@/components/reader/reader-chrome";
 import { updatePrefs, usePrefs } from "@/hooks/usePrefs";
@@ -203,6 +204,13 @@ export function EpubReader({ book, file, onProgress }: EpubReaderProps) {
             if ((event as PointerEvent).pointerType !== "mouse") return;
             const hit = wordFromEvent(event);
             if (hit) prefetchWord(hit.word);
+          });
+
+          // Lo mismo con el deslizamiento: el dedo toca el documento del
+          // iframe, no la página que lo contiene. El listener se va con él.
+          attachSwipeNavigation(doc, {
+            onPrev: () => void renditionRef.current?.prev(),
+            onNext: () => void renditionRef.current?.next(),
           });
 
           // Con el foco dentro del iframe las flechas no llegan a la ventana

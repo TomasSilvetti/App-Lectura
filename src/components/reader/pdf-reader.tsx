@@ -10,6 +10,7 @@ import {
   wrapWordsInElement,
 } from "@/lib/wrap-words";
 import { prefetchWord } from "@/lib/dictionary";
+import { attachSwipeNavigation } from "@/lib/swipe";
 import { useWordLookup } from "@/components/word/word-lookup-provider";
 import { ReaderChrome } from "@/components/reader/reader-chrome";
 import { updatePrefs, usePrefs } from "@/hooks/usePrefs";
@@ -188,6 +189,18 @@ export function PdfReader({ book, file, onProgress }: PdfReaderProps) {
     },
     [totalPages, onProgress],
   );
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+    return attachSwipeNavigation(element, {
+      onPrev: () => goTo(page - 1),
+      onNext: () => goTo(page + 1),
+      // Con el texto ampliado la página no entra a lo ancho y el gesto sirve
+      // para correrse hasta el margen.
+      isScrollableX: () => element.scrollWidth - element.clientWidth > 2,
+    });
+  }, [goTo, page]);
 
   if (error) {
     return (

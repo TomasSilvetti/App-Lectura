@@ -12,6 +12,7 @@
     "e2e:pwa": "node e2e/pwa-check.mjs",
     "e2e:dark": "node e2e/dark-check.mjs",
     "e2e:theme": "node e2e/theme-toggle-check.mjs",
+    "e2e:swipe": "node e2e/swipe-check.mjs",
     "e2e:fixtures": "node e2e/make-fixtures.mjs",
     "icons": "node scripts/make-icons.mjs",
     "sync-pdf-worker": "node scripts/sync-pdf-worker.mjs",
